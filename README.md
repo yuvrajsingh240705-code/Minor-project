@@ -102,26 +102,6 @@ order with values in dB. Both rasters must use the same pixel grid.
 | Evaluation gallery | Browses cloudy input, estimate, clear reference, and per-patch metrics |
 | LISS-IV research track | Separate [three-band interface, source, scripts, and guide](liss4/README.md) |
 
-## Training
-
-The Sentinel training command uses SEN12MS-CR triplets. Download the dataset
-and its `datasetfilelist.csv` from the [official dataset record](https://mediatum.ub.tum.de/1554803),
-then run this from the repository root in PowerShell:
-
-```powershell
-python train.py `
-  --manifest path\to\datasetfilelist.csv `
-  --data-root path\to\SEN12MS-CR `
-  --output weights\dsen2cr_sar_carl_trained.pth `
-  --epochs 8 --batch-size 1 --crop-size 128 --device auto
-```
-
-The training workflow uses the dataset's train and validation splits and
-excludes its listed test split. It saves the best validation checkpoint, a
-resumable checkpoint, and an epoch history. Training is optional when using the
-bundled ClearSky-AI-trained checkpoint, which is included through Git LFS. See the
-[full training guide](PROJECT_GUIDE.md#train-the-pytorch-sentinel-model) for
-data preparation and resume options.
 
 ## LISS-IV research track
 
@@ -169,15 +149,4 @@ and [DiffCR fine-tuning notes](PROJECT_GUIDE.md#fine-tune-the-linked-repos-pretr
 - [SEN12MS-CR dataset record](https://mediatum.ub.tum.de/1554803)
 - [AllClear dataset and benchmark](https://github.com/Zhou-Hangyu/allclear)
 - [DiffCR source repository](https://github.com/Zhou-Hangyu/DiffCR)
-
-ClearSky-AI is distributed under the [GNU GPL-3.0 license](LICENSE).
-
 ---
-
-<div align="center">
-
-**Want the implementation details?** Start with the
-[full project guide](PROJECT_GUIDE.md) for data preparation, training,
-inference, experiments, and repository layout.
-
-</div>
