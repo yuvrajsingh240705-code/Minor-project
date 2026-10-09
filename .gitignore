@@ -1,0 +1,42 @@
+# Python
+__pycache__/
+*.py[cod]
+*.pyo
+
+# Local / raw satellite data
+data/raw/**
+data/eval/**
+data/synthetic_pretrain/**
+data/synthetic_pretrain_clear/**
+data/synthetic_pretrain_prod/**
+data/synthetic_pretrain_v2/**
+data/synthetic_pretrain_v3r/**
+data/synthetic_pretrain_v3r_from_guwahati/**
+data/synthetic_pretrain_clear_bhoonidhi_*/
+data/synthetic_pretrain_v3r_bhoonidhi_*/
+
+# Local model checkpoints
+weights/*.pth
+weights/*.hdf5
+!weights/clearskkyai.pth
+!weights/liss4_dsen2cr_synthetic_v3r.pth
+!weights/README.md
+
+# Temporary preview embeds
+previews/*_embed.svg
+
+# Archives / local arrays
+*.zip
+*.tar
+*.tar.gz
+*.npy
+
+# Local LISS-IV experimental data
+data/synthetic_pretrain_prod/
+data/raw/bhoonidhi_liss4/
+data/raw/chennai/
+data/eval/
+
+# Curated LISS-IV demo assets are small, versioned examples (tracked with Git LFS).
+!data/liss4_demo/
+!data/liss4_demo/**
