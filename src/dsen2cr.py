@@ -3,12 +3,9 @@ import torch.nn as nn
 
 class DSen2CR(nn.Module):
     """
-    PyTorch reimplementation of the published DSen2-CR residual architecture.
-
     Inputs:
       - 13 Sentinel-2 channels in B01..B12/B8A order used by SEN12MS-CR
       - 2 Sentinel-1 channels (VV, VH)
-
     Architecture:
       15-channel input -> 256-channel conv -> 16 residual blocks
       -> 13-channel conv -> long skip from the cloudy optical input.
@@ -56,24 +53,3 @@ class ResBlock(nn.Module):
         y = self.act(self.c1(x))
         y = self.c2(y)
         return x + self.res_scale * y
-
-
-def load_dsen2cr_weights(model, path, map_location="cpu"):
-    # State-dict checkpoints need only tensors and simple containers. Avoid
-    # pickle's arbitrary object loading for files supplied by other users.
-    state = torch.load(path, map_location=map_location, weights_only=True)
-
-    if isinstance(state, dict) and "state_dict" in state:
-        state = state["state_dict"]
-
-    if not isinstance(state, dict):
-        raise ValueError(f"Unsupported DSen2-CR checkpoint format: {type(state)}")
-
-    clean = {}
-    for k, v in state.items():
-        if k.startswith("module."):
-            k = k[7:]
-        clean[k] = v
-
-    model.load_state_dict(clean, strict=True)
-    return model
