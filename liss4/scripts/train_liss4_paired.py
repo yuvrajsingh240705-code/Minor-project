@@ -17,7 +17,7 @@ SRC_DIR = os.path.join(PROJECT_ROOT, "src")
 if SRC_DIR not in sys.path:
     sys.path.insert(0, SRC_DIR)
 
-from liss4_dsen2cr import LISS4DSen2CR
+from liss4_clearsky import ClearSkyLISS4
 from liss4_diffcr_transfer import LISS4DiffCRTransfer, resolve_diffcr_root
 from liss4_window_dataset import LISS4WindowPairDataset
 
@@ -255,7 +255,7 @@ def main():
         pretrained_report = model.pretrained_report
         learning_rate = args.lr if args.lr is not None else 1e-5
     else:
-        model = LISS4DSen2CR(
+        model = ClearSkyLISS4(
             features=args.features,
             blocks=args.blocks,
             res_scale=0.1,

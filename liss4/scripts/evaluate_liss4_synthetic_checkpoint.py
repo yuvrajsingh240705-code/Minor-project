@@ -13,7 +13,7 @@ if SRC_DIR not in sys.path:
     sys.path.insert(0, SRC_DIR)
 
 from liss4 import normalize_liss4
-from liss4_dsen2cr import LISS4DSen2CR
+from liss4_clearsky import ClearSkyLISS4
 from train_liss4_synthetic import NPZLISS4Dataset
 
 
@@ -93,7 +93,7 @@ def main():
         )
 
     device = select_device(args.device)
-    model = LISS4DSen2CR(
+    model = ClearSkyLISS4(
         features=int(checkpoint.get("features", 256)),
         blocks=int(checkpoint.get("blocks", 16)),
         res_scale=0.1,

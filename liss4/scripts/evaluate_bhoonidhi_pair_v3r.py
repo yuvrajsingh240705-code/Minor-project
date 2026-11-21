@@ -18,7 +18,7 @@ if SRC_DIR not in sys.path:
     sys.path.insert(0, SRC_DIR)
 
 from liss4 import normalize_liss4
-from liss4_dsen2cr import LISS4DSen2CR
+from liss4_clearsky import ClearSkyLISS4
 
 
 BANDS = ["BAND2", "BAND3", "BAND4"]
@@ -332,7 +332,7 @@ def main():
     )
     ap.add_argument(
         "--checkpoint",
-        default="weights/liss4_dsen2cr_synthetic_v3r.pth",
+        default="weights/liss4_clearsky_v3r.pth",
     )
     ap.add_argument("--dn-max", type=float, default=1023.0)
     ap.add_argument("--tile", type=int, default=256)
@@ -388,7 +388,7 @@ def main():
         weights_only=False,
     )
 
-    model = LISS4DSen2CR(
+    model = ClearSkyLISS4(
         features=int(ckpt.get("features", 256)),
         blocks=int(ckpt.get("blocks", 16)),
         res_scale=0.1,

@@ -13,7 +13,7 @@ SRC_DIR = os.path.join(PROJECT_ROOT, "src")
 if SRC_DIR not in sys.path:
     sys.path.insert(0, SRC_DIR)
 
-from liss4_dsen2cr import LISS4DSen2CR
+from liss4_clearsky import ClearSkyLISS4
 
 
 def main():
@@ -53,7 +53,7 @@ def main():
                 dst.update_tags(ns="SOURCE_META", source_band=f"BAND{index + 2}")
                 dst.update_tags(1, ns="BAND_META", band_role=band_name)
 
-        model = LISS4DSen2CR(features=8, blocks=1, res_scale=0.1, use_sar=False)
+        model = ClearSkyLISS4(features=8, blocks=1, res_scale=0.1, use_sar=False)
         torch.save(
             {
                 "model_state_dict": model.state_dict(),

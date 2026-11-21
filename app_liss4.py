@@ -58,13 +58,16 @@ def read_demo_gallery():
 
 def checkpoint_paths():
     """Return available LISS-IV checkpoints, excluding resumable latest states."""
+    candidates = list(WEIGHTS_DIR.glob("liss4_*.pth"))
+    v3r_checkpoint = WEIGHTS_DIR / "liss4_clearsky_v3r.pth"
+    if v3r_checkpoint.is_file():
+        candidates.append(v3r_checkpoint)
     return sorted(
-        (
-            path
-            for path in WEIGHTS_DIR.glob("liss4_*.pth")
-            if "latest" not in path.stem
+        (path for path in candidates if "latest" not in path.stem and not is_lfs_pointer(path)),
+        key=lambda path: (
+            path.name not in {"liss4_clearsky_v3r.pth"},
+            path.name,
         ),
-        key=lambda path: (path.name != "liss4_dsen2cr_synthetic_v3r.pth", path.name),
     )
 
 
@@ -218,7 +221,7 @@ def read_download(path):
 
 st.set_page_config(page_title="ClearSky-AI", page_icon="🌤️", layout="wide")
 st.title("ClearSky-AI")
-st.caption("LISS-IV cloud reconstruction · DSen2-CR-inspired research prototype")
+st.caption("LISS-IV cloud reconstruction · ClearSky-AI research prototype")
 
 st.info(
     "Provide cloudy LISS-IV Green, Red, and NIR imagery. The model estimates a "
@@ -236,7 +239,7 @@ if not available_checkpoints:
     st.stop()
 
 checkpoint_labels = {path.name: path for path in available_checkpoints}
-preferred_checkpoint = "liss4_dsen2cr_synthetic_v3r.pth"
+preferred_checkpoint = "liss4_clearsky_v3r.pth"
 default_index = (
     list(checkpoint_labels).index(preferred_checkpoint)
     if preferred_checkpoint in checkpoint_labels

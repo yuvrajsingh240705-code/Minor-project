@@ -16,8 +16,8 @@ from rasterio.transform import from_origin
 PROJECT_ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(PROJECT_ROOT / "src"))
 
-from dsen2cr import DSen2CR, load_dsen2cr_weights
-from dsen2cr_training import cloud_cloudshadow_mask, carl_loss, read_training_samples
+from clearsky_sentinel import ClearSkySentinel, load_clearsky_weights
+from clearsky_sentinel_training import cloud_cloudshadow_mask, carl_loss, read_training_samples
 
 
 def write_tiff(path: Path, data: np.ndarray) -> None:
@@ -51,7 +51,7 @@ def main() -> None:
     loss.backward()
     assert torch.isfinite(loss) and prediction.grad is not None
 
-    with tempfile.TemporaryDirectory(prefix="validate_dsen2cr_training_") as directory:
+    with tempfile.TemporaryDirectory(prefix="validate_clearsky_training_") as directory:
         root = Path(directory)
         upstream_index = root / "datasetfilelist.csv"
         with upstream_index.open("w", newline="", encoding="utf-8") as stream:
@@ -114,15 +114,15 @@ def main() -> None:
         checkpoint = torch.load(output, map_location="cpu", weights_only=True)
         assert checkpoint["config"] == {"features": 4, "blocks": 1, "res_scale": 0.1}
         assert checkpoint["training_config"]["train_samples"] == 1
-        model = DSen2CR(features=4, blocks=1)
-        load_dsen2cr_weights(model, str(output))
+        model = ClearSkySentinel(features=4, blocks=1)
+        load_clearsky_weights(model, str(output))
         with torch.inference_mode():
             result = model(torch.zeros((1, 15, 16, 16)))
         assert result.shape == (1, 13, 16, 16) and torch.isfinite(result).all()
         print(completed.stdout.strip())
         print(resumed.stdout.strip())
 
-    print("PyTorch DSen2-CR training smoke test passed (mask, CARL, train/val, save/load).")
+    print("ClearSky-AI Sentinel training smoke test passed (mask, CARL, train/val, save/load).")
 
 
 if __name__ == "__main__":

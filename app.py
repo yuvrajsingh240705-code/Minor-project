@@ -15,9 +15,7 @@ from rasterio.enums import Resampling
 
 
 PROJECT_ROOT = Path(__file__).resolve().parent
-INFERENCE_SCRIPT = PROJECT_ROOT / "scripts" / "infer_sentinel_dsen2cr.py"
-CLEARSKYAI_CHECKPOINT = PROJECT_ROOT / "weights" / "clearskkyai.pth"
-TRAINED_CHECKPOINT = PROJECT_ROOT / "weights" / "dsen2cr_sar_carl_trained.pth"
+INFERENCE_SCRIPT = PROJECT_ROOT / "scripts" / "infer_clearsky_sentinel.py"
 GALLERY_MANIFEST = PROJECT_ROOT / "data" / "sentinel_demo" / "manifest.csv"
 MAX_PREVIEW_EDGE = 900
 REFLECTANCE_MAX = 10000.0
@@ -37,6 +35,19 @@ def is_lfs_pointer(path: Path) -> bool:
 
 def checkpoint_ready(path: Path) -> bool:
     return path.is_file() and not is_lfs_pointer(path)
+
+
+def available_checkpoints() -> dict[str, Path]:
+    """List every usable .pth checkpoint in the weights directory."""
+    options: dict[str, Path] = {}
+    weights_dir = PROJECT_ROOT / "weights"
+    if weights_dir.is_dir():
+        for path in sorted(weights_dir.glob("*.pth"), key=lambda item: item.name.lower()):
+            if path.name.startswith("liss4_"):
+                continue
+            if checkpoint_ready(path):
+                options[f"{path.stem} ({path.name})"] = path
+    return options
 
 
 def read_gallery() -> list[dict]:
@@ -220,11 +231,7 @@ def render_sidebar(cases: list[dict]):
         index=0 if cases else 1,
         key="input_mode",
     )
-    checkpoint_options = {}
-    if checkpoint_ready(CLEARSKYAI_CHECKPOINT):
-        checkpoint_options["ClearSky-AI trained model (clearskkyai.pth)"] = CLEARSKYAI_CHECKPOINT
-    if checkpoint_ready(TRAINED_CHECKPOINT):
-        checkpoint_options["Local PyTorch training run"] = TRAINED_CHECKPOINT
+    checkpoint_options = available_checkpoints()
     if checkpoint_options:
         model_label = st.sidebar.selectbox("Reconstruction checkpoint", tuple(checkpoint_options))
         checkpoint = checkpoint_options[model_label]
@@ -232,7 +239,7 @@ def render_sidebar(cases: list[dict]):
         st.sidebar.info("Expected input: cloudy S2 + aligned S1 VV/VH → 13-band estimate")
     else:
         model_label = ""
-        checkpoint = CLEARSKYAI_CHECKPOINT
+        checkpoint = PROJECT_ROOT / "weights" / "clearskkyai.pth"
         st.sidebar.error("Model weights are missing or still Git LFS pointers. Run `git lfs pull`.")
     if GALLERY_LFS_PENDING:
         st.sidebar.warning("Sample imagery is still stored as Git LFS pointers. Run `git lfs pull`.")
@@ -331,9 +338,8 @@ def render_sidebar(cases: list[dict]):
         )
     with st.sidebar.expander("Model and data attribution", expanded=False):
         st.markdown(
-            "The bundled `weights/clearskkyai.pth` checkpoint was trained for ClearSky-AI. "
-            "Its PyTorch network follows the SAR-guided DSen2-CR architecture described by "
-            "[Meraner et al. (2020)](https://github.com/ameraner/dsen2-cr). The sample gallery "
+            "The bundled `weights/clearskkyai.pth` checkpoint is the ClearSky-AI trained "
+            "SAR-guided Sentinel-2 reconstruction model. The sample gallery "
             "is derived from the [SEN12MS-CR dataset](https://mediatum.ub.tum.de/1554803), "
             "licensed CC BY 4.0. This software is "
             "distributed under GNU GPL-3.0, without warranty; see the repository `LICENSE` "

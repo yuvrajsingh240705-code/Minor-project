@@ -17,7 +17,7 @@ if SRC_DIR not in sys.path:
     sys.path.insert(0, SRC_DIR)
 
 from liss4 import normalize_liss4
-from liss4_dsen2cr import LISS4DSen2CR
+from liss4_clearsky import ClearSkyLISS4
 from liss4_diffcr_transfer import LISS4DiffCRTransfer, resolve_diffcr_root
 
 READ_ONLY_TAG_NAMESPACES = {"IMAGE_STRUCTURE", "DERIVED_SUBDATASETS"}
@@ -144,7 +144,7 @@ def load_model(checkpoint_path, device, diffcr_root=None):
         root = resolve_diffcr_root(diffcr_root or checkpoint.get("diffcr_root"))
         model = LISS4DiffCRTransfer(diffcr_root=root).to(device)
     elif model_type in ("liss4_paired_supervised", "liss4_synthetic"):
-        model = LISS4DSen2CR(
+        model = ClearSkyLISS4(
             features=int(checkpoint.get("features") or 256),
             blocks=int(checkpoint.get("blocks") or 16),
             res_scale=0.1,
@@ -255,7 +255,7 @@ def main():
     )
     ap.add_argument(
         "--checkpoint",
-        default="weights/liss4_dsen2cr_synthetic_v3r.pth",
+        default="weights/liss4_clearsky_v3r.pth",
     )
     ap.add_argument(
         "--diffcr-root",

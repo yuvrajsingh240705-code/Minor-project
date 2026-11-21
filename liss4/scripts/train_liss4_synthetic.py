@@ -16,7 +16,7 @@ if SRC_DIR not in sys.path:
     sys.path.insert(0, SRC_DIR)
 
 from liss4 import normalize_liss4
-from liss4_dsen2cr import LISS4DSen2CR
+from liss4_clearsky import ClearSkyLISS4
 
 
 class NPZLISS4Dataset(Dataset):
@@ -72,7 +72,7 @@ def masked_l1(pred, target, mask):
 
 def main():
     ap = argparse.ArgumentParser(
-        description="Train DSen2-CR-style LISS-IV model on synthetic native-LISS-IV clouds."
+        description="Train the ClearSky-AI LISS-IV model on synthetic native-LISS-IV clouds."
     )
     ap.add_argument("--manifest", default="data/synthetic_pretrain_v3r/manifest.csv")
     ap.add_argument(
@@ -96,7 +96,7 @@ def main():
     ap.add_argument("--features", type=int, default=256)
     ap.add_argument("--blocks", type=int, default=16)
     ap.add_argument("--lambda-cloud", type=float, default=2.0)
-    ap.add_argument("--output", default="weights/liss4_dsen2cr_synthetic.pth")
+    ap.add_argument("--output", default="weights/liss4_clearsky_synthetic.pth")
     ap.add_argument("--latest-output", default=None)
     ap.add_argument("--resume", default=None)
     args = ap.parse_args()
@@ -179,7 +179,7 @@ def main():
         pin_memory=device.type == "cuda",
     )
 
-    model = LISS4DSen2CR(
+    model = ClearSkyLISS4(
         features=args.features,
         blocks=args.blocks,
         res_scale=0.1,

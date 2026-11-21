@@ -1,4 +1,4 @@
-"""Small integration check for the ClearSky-AI Sentinel DSen2-CR checkpoint."""
+"""Small integration check for the ClearSky-AI Sentinel checkpoint."""
 
 from pathlib import Path
 import sys
@@ -10,7 +10,7 @@ from rasterio.transform import from_origin
 
 PROJECT_ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(PROJECT_ROOT / "scripts"))
-from infer_sentinel_dsen2cr import normalize_inputs, run_inference, validate_rasters
+from infer_clearsky_sentinel import normalize_inputs, run_inference, validate_rasters
 
 
 def write_input(path, data, crs="EPSG:32632", transform=None):
@@ -43,7 +43,7 @@ def main():
     assert np.allclose(normalized[:13], 1.0)
     assert np.allclose(normalized[13:], 0.0)
 
-    with tempfile.TemporaryDirectory(prefix="validate_sentinel_dsen2cr_") as work:
+    with tempfile.TemporaryDirectory(prefix="validate_clearsky_sentinel_") as work:
         root = Path(work)
         s2_path, sar_path, output_path = root / "s2.tif", root / "sar.tif", root / "out.tif"
         write_input(s2_path, optical)
@@ -74,7 +74,7 @@ def main():
         else:
             raise AssertionError("A shifted SAR raster should fail co-registration validation.")
 
-    print("Sentinel DSen2-CR integration validation passed (checkpoint load, preprocessing, alignment, GeoTIFF output).")
+    print("Sentinel ClearSky-AI integration validation passed (checkpoint load, preprocessing, alignment, GeoTIFF output).")
 
 
 if __name__ == "__main__":

@@ -104,8 +104,8 @@ def main():
     )
     ap.add_argument("--cloudy", default="data/raw/cloudy/guwahati_cloudy_test.tif")
     ap.add_argument("--clear", default="data/raw/clear/guwahati_clear.tif")
-    ap.add_argument("--v2", default="data/eval/guwahati_liss4_dsen2cr_v2.tif")
-    ap.add_argument("--v3r", default="data/eval/guwahati_liss4_dsen2cr_v3r.tif")
+    ap.add_argument("--v2", default="data/eval/guwahati_liss4_clearsky_v2.tif")
+    ap.add_argument("--v3r", default="data/eval/guwahati_liss4_clearsky_v3r.tif")
     ap.add_argument(
         "--baseline-label",
         default="V2",

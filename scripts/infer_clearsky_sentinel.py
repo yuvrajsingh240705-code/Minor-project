@@ -1,4 +1,4 @@
-"""Run the ClearSky-AI-trained, SAR-guided DSen2-CR model on co-registered rasters."""
+"""Run the ClearSky-AI-trained, SAR-guided Sentinel reconstruction model."""
 
 from __future__ import annotations
 
@@ -14,7 +14,7 @@ from rasterio.windows import Window
 PROJECT_ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(PROJECT_ROOT / "src"))
 
-from dsen2cr import DSen2CR, load_dsen2cr_weights
+from clearsky_sentinel import ClearSkySentinel, load_clearsky_weights
 
 
 S2_BANDS = (
@@ -63,7 +63,7 @@ def validate_rasters(s2_path: Path, sar_path: Path) -> dict:
 
 
 def normalize_inputs(optical_dn: np.ndarray, sar_db: np.ndarray) -> np.ndarray:
-    """Apply the released DSen2-CR preprocessing: S2/2000 and clipped SAR to [0,2]."""
+    """Apply the project preprocessing: S2/2000 and clipped SAR to [0,2]."""
     optical = np.clip(optical_dn, 0.0, 10000.0) / OPTICAL_SCALE
     lower = SAR_LIMITS[:, 0, None, None]
     upper = SAR_LIMITS[:, 1, None, None]
@@ -89,7 +89,7 @@ def run_inference(
     tile: int = 256,
     overlap: int = 32,
     device_name: str = "auto",
-    model: DSen2CR | None = None,
+    model: ClearSkySentinel | None = None,
 ) -> dict:
     if tile < 32:
         raise ValueError("Tile size must be at least 32 pixels.")
@@ -104,8 +104,8 @@ def run_inference(
     info = validate_rasters(s2_path, sar_path)
     device = choose_device(device_name)
     if model is None:
-        model = DSen2CR().to(device)
-        load_dsen2cr_weights(model, str(checkpoint), map_location=device)
+        model = ClearSkySentinel().to(device)
+        load_clearsky_weights(model, str(checkpoint), map_location=device)
     else:
         model = model.to(device)
     model.eval()
@@ -175,7 +175,7 @@ def run_inference(
         destination.write_mask(valid_map * 255)
         destination.descriptions = S2_BANDS
         destination.update_tags(
-            model="PyTorch DSen2-CR SAR-guided reconstruction",
+            model="ClearSky-AI PyTorch SAR-guided reconstruction",
             checkpoint=checkpoint.name,
             optical_normalization="clip reflectance DN to 0..10000; divide by 2000",
             sar_normalization="clip VV to -25..0 dB, VH to -32.5..0 dB; scale to 0..2",

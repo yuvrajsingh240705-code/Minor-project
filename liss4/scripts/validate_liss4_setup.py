@@ -15,7 +15,7 @@ if SRC_DIR not in sys.path:
 
 from liss4 import denormalize_liss4, normalize_liss4, suggested_dn_max
 from liss4_dataset import LISS4PairDataset
-from liss4_dsen2cr import LISS4DSen2CR
+from liss4_clearsky import ClearSkyLISS4
 
 
 def write_tif(path, arr, transform):
@@ -54,7 +54,7 @@ def check_normalization():
 
 
 def check_model(use_sar):
-    model = LISS4DSen2CR(
+    model = ClearSkyLISS4(
         features=32,
         blocks=2,
         res_scale=0.1,

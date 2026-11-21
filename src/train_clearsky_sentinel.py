@@ -10,8 +10,8 @@ import numpy as np
 import torch
 from torch.utils.data import DataLoader
 
-from dsen2cr import DSen2CR, load_dsen2cr_weights
-from dsen2cr_training import SEN12MSCRDataset, read_training_samples, carl_loss
+from clearsky_sentinel import ClearSkySentinel, load_clearsky_weights
+from clearsky_sentinel_training import SEN12MSCRDataset, read_training_samples, carl_loss
 
 
 def evaluate(model, loader, device) -> dict[str, float]:
@@ -73,20 +73,20 @@ def save_checkpoint(
 def main() -> None:
     parser = argparse.ArgumentParser(
         description=(
-            "Train DSen2-CR in PyTorch. Accepts upstream datasetfilelist.csv or a "
+            "Train the ClearSky-AI Sentinel reconstruction model in PyTorch. Accepts upstream datasetfilelist.csv or a "
             "manifest with cloudy_s2, sar_s1, clear_target, and split columns."
         )
     )
     parser.add_argument("--manifest", type=Path, required=True, help="Dataset file list / manifest CSV")
     parser.add_argument("--data-root", type=Path, default=Path("."), help="Root for paths in upstream file lists")
-    parser.add_argument("--output", type=Path, default=Path("weights/dsen2cr_sar_carl_trained.pth"))
+    parser.add_argument("--output", type=Path, default=Path("weights/clearsky_sentinel_trained.pth"))
     parser.add_argument("--resume", type=Path, help="Resume model and optimizer from a training checkpoint")
     parser.add_argument("--init-checkpoint", type=Path, help="Initialize from a compatible pretrained state dict")
     parser.add_argument("--epochs", type=int, default=8)
     parser.add_argument("--batch-size", type=int, default=1)
     parser.add_argument("--crop-size", type=int, default=128)
-    parser.add_argument("--features", type=int, default=256, help="Architecture width; 256 matches standard DSen2-CR")
-    parser.add_argument("--blocks", type=int, default=16, help="Residual block count; 16 matches standard DSen2-CR")
+    parser.add_argument("--features", type=int, default=256, help="Architecture width")
+    parser.add_argument("--blocks", type=int, default=16, help="Residual block count")
     parser.add_argument("--learning-rate", type=float, default=7e-5)
     parser.add_argument("--cloud-threshold", type=float, default=0.2)
     parser.add_argument("--workers", type=int, default=0, help="DataLoader workers (0 is robust on Windows)")
@@ -156,9 +156,9 @@ def main() -> None:
         "device": str(device),
         "initial_checkpoint": str(args.init_checkpoint.resolve()) if args.init_checkpoint else None,
     }
-    model = DSen2CR(**model_config).to(device)
+    model = ClearSkySentinel(**model_config).to(device)
     if args.init_checkpoint:
-        load_dsen2cr_weights(model, str(args.init_checkpoint), map_location=device)
+        load_clearsky_weights(model, str(args.init_checkpoint), map_location=device)
     optimizer = torch.optim.NAdam(
         model.parameters(), lr=args.learning_rate, betas=(0.9, 0.999), eps=1e-8
     )
@@ -178,7 +178,7 @@ def main() -> None:
     history_path = args.output.with_name(args.output.stem + "_history.csv")
     latest_path = args.output.with_name(args.output.stem + "_latest.pth")
     print(
-        f"PyTorch DSen2-CR training: {len(train_set)} train, {len(val_set)} validation "
+        f"ClearSky-AI Sentinel training: {len(train_set)} train, {len(val_set)} validation "
         f"triplets; {device}; architecture={model_config}; output={args.output}",
         flush=True,
     )

@@ -23,9 +23,8 @@ cloud-free Sentinel-2 surface. It also preserves a separate, experimental
 LISS-IV research workflow.
 
 > **Model provenance:** `weights/clearskkyai.pth` is the ClearSky-AI-trained
-> Sentinel checkpoint. Its PyTorch network follows the DSen2-CR architecture
-> described by Meraner et al. (2020). Reconstructions are estimates and can be
-> wrong where clouds hide the ground.
+> Sentinel checkpoint developed for this project. Reconstructions are estimates
+> and can be wrong where clouds hide the ground.
 
 ## Explore
 
@@ -44,7 +43,7 @@ transform. The model returns a 13-band estimate on the optical image's grid.
 flowchart LR
     S2["Cloudy Sentinel-2<br/>13 optical bands"] --> GRID["Grid checks<br/>and published scaling"]
     S1["Sentinel-1<br/>VV / VH backscatter"] --> GRID
-    GRID --> MODEL["ClearSky-AI-trained PyTorch model<br/>DSen2-CR architecture"]
+    GRID --> MODEL["ClearSky-AI PyTorch reconstruction model"]
     MODEL --> OUT["Estimated cloud-free Sentinel-2<br/>13-band GeoTIFF<br/>source georeferencing retained"]
     OUT -. "optional reference evaluation" .-> METRICS["PSNR · SSIM · MAE"]
     REF["Paired clear Sentinel-2<br/>used for training/evaluation"] --> METRICS

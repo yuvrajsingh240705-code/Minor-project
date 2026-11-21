@@ -16,9 +16,9 @@ class ResBlock(nn.Module):
         return x + self.res_scale * y
 
 
-class LISS4DSen2CR(nn.Module):
+class ClearSkyLISS4(nn.Module):
     """
-    PyTorch reimplementation of the DSen2-CR architecture modified for LISS-IV
+    ClearSky-AI LISS-IV reconstruction network.
     """
     def __init__(self, features=256, blocks=16, res_scale=0.1, use_sar=False):
         super().__init__()

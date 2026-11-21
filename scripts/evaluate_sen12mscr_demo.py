@@ -1,4 +1,4 @@
-"""Run and score DSen2-CR against all locally prepared SEN12MS-CR demo samples."""
+"""Run and score the ClearSky-AI Sentinel model against prepared demo samples."""
 
 from __future__ import annotations
 
@@ -13,8 +13,8 @@ import rasterio
 
 PROJECT_ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(PROJECT_ROOT / "scripts"))
-from infer_sentinel_dsen2cr import choose_device, run_inference
-from dsen2cr import DSen2CR, load_dsen2cr_weights
+from infer_clearsky_sentinel import choose_device, run_inference
+from clearsky_sentinel import ClearSkySentinel, load_clearsky_weights
 
 
 def score(prediction_path: Path, reference_path: Path) -> dict:
@@ -65,8 +65,8 @@ def main() -> None:
         raise ValueError("Gallery manifest has no cases.")
 
     device = choose_device(args.device)
-    model = DSen2CR().to(device)
-    load_dsen2cr_weights(model, str(args.checkpoint), map_location=device)
+    model = ClearSkySentinel().to(device)
+    load_clearsky_weights(model, str(args.checkpoint), map_location=device)
     model.eval()
 
     for index, case in enumerate(cases, start=1):
