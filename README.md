@@ -1,151 +1,81 @@
-<div align="center">
+# ClearSky-AI
 
-# ☁️ ClearSky-AI
+ClearSky-AI reconstructs cloud-obscured Sentinel-2 imagery using aligned
+Sentinel-1 VV/VH radar data.
 
-### SAR-guided reconstruction for cloudy Sentinel-2 imagery
+The project provides:
 
-**Sentinel-1 VV/VH · 13-band Sentinel-2 · PyTorch · Streamlit**
+- A Streamlit reconstruction interface
+- A 13-band GeoTIFF reconstruction output
+- A prepared SEN12MS-CR sample gallery
+- A held-out model benchmark
+- An experimental LISS-IV application
 
-[![Python](https://img.shields.io/badge/Language-Python-3776AB?logo=python&logoColor=white)](#quick-start)
-[![PyTorch](https://img.shields.io/badge/Framework-PyTorch-EE4C2C?logo=pytorch&logoColor=white)](#model-flow)
-[![Streamlit](https://img.shields.io/badge/App-Streamlit-FF4B4B?logo=streamlit&logoColor=white)](#quick-start)
-[![License](https://img.shields.io/badge/License-GPL--3.0-blue.svg)](LICENSE)
+## Benchmark results
 
-*Reconstructing cloud-obscured optical imagery with radar guidance.*
+The held-out benchmark contains **964 prepared SEN12MS-CR patches**.
 
-</div>
-
----
-
-ClearSky-AI is a remote-sensing research project. Its main demo takes a cloudy
-Sentinel-2 image and a co-registered Sentinel-1 radar image, then estimates the
-cloud-free Sentinel-2 surface. It also preserves a separate, experimental
-LISS-IV research workflow.
-
-> **Model provenance:** `weights/clearskkyai.pth` is the ClearSky-AI-trained
-> Sentinel checkpoint developed for this project. Reconstructions are estimates
-> and can be wrong where clouds hide the ground.
-
-## Explore
-
-[Quick start](#quick-start) · [Model flow](#model-flow) ·
-[Demo results](#demo-results) · [Training](#training) ·
-[LISS-IV research](#liss-iv-research-track) ·
-[Limitations](#limitations) · [LISS-IV folder guide](liss4/README.md) ·
-[Full technical guide](PROJECT_GUIDE.md)
-
-## Model flow
-
-The input rasters must already share the same CRS, pixel grid, and affine
-transform. The model returns a 13-band estimate on the optical image's grid.
-
-```mermaid
-flowchart LR
-    S2["Cloudy Sentinel-2<br/>13 optical bands"] --> GRID["Grid checks<br/>and published scaling"]
-    S1["Sentinel-1<br/>VV / VH backscatter"] --> GRID
-    GRID --> MODEL["ClearSky-AI PyTorch reconstruction model"]
-    MODEL --> OUT["Estimated cloud-free Sentinel-2<br/>13-band GeoTIFF<br/>source georeferencing retained"]
-    OUT -. "optional reference evaluation" .-> METRICS["PSNR · SSIM · MAE"]
-    REF["Paired clear Sentinel-2<br/>used for training/evaluation"] --> METRICS
-
-    classDef optical fill:#eaf2ff,stroke:#3b82f6,color:#172554
-    classDef radar fill:#f2eaff,stroke:#8b5cf6,color:#2e1065
-    classDef process fill:#e8f7ef,stroke:#22a06b,color:#123b2a
-    class S2,OUT,REF optical
-    class S1 radar
-    class GRID,MODEL,METRICS process
-```
-
-## Demo results
-
-The expanded gallery run covered **964 held-out patches** from the prepared
-SEN12MS-CR subset:
-
-| Measure | Cloudy input | Reconstruction |
+| Metric | Cloudy input | Reconstruction |
 | --- | ---: | ---: |
-| Mean per-patch PSNR | 17.25 dB | 27.65 dB |
-| Patches with higher PSNR after reconstruction | — | 960 / 964 |
+| Mean PSNR | 17.25 dB | 27.65 dB |
+| Mean MAE | 0.11962 | 0.03130 |
+| Mean SSIM | 0.56137 | 0.82366 |
+| Mean SAM | 14.045 degrees | 8.970 degrees |
+| Mean PSNR gain | - | +10.40 dB |
 
-These are patch-level results from one dataset, not a benchmark or independent
-external validation. Clear references can come from a different acquisition
-date. See the
-[detailed evaluation notes](PROJECT_GUIDE.md#prepare-demo-examples-and-the-expanded-local-subset).
+The reconstruction improved PSNR in **960 of 964 patches**.
+
+The **Benchmark** page in the Streamlit app contains the charts, metric
+explanations, and downloadable benchmark files.
+
+## Dataset use
+
+- **Training material:** SEN12MS-CR and AllClear, with approximately 90 GB of
+  source data used for the project training work.
+- **Held-out test benchmark:** All 964 official test-split patches are included.
+
 
 ## Quick start
 
-The sample gallery and ClearSky-AI-trained checkpoint use Git LFS. Install Git LFS before
-cloning so the repository downloads the actual images and weights.
+Install Git LFS to retrieve the checkpoint and gallery assets.
 
-```powershell
+```bash
 git lfs install
-git clone https://github.com/siddharthhkk/CLEARSKKYAI.git
-cd CLEARSKKYAI
 git lfs pull
 python -m pip install -r requirements.txt
 streamlit run app.py
 ```
 
-In the app, choose a paired gallery sample or provide local files. The optical
-input uses the 13 bands `B01, B02, B03, B04, B05, B06, B07, B08, B8A, B09,
-B10, B11, B12`. The radar input is a two-band Sentinel-1 GeoTIFF in `VV, VH`
-order with values in dB. Both rasters must use the same pixel grid.
+Use the **Reconstruction** page to select a paired gallery sample, upload an
+aligned raster pair, or enter local raster paths.
 
+Expected inputs:
 
-## What is included
+- Sentinel-2: 13 bands in B01, B02, B03, B04, B05, B06, B07, B08, B8A, B09,
+  B10, B11, B12 order
+- Sentinel-1: two bands in VV, VH order
+- Both rasters must use the same pixel grid, CRS, and affine transform
 
-| Component | What it does |
-| --- | --- |
-| Sentinel-1/2 demo | Streamlit interface for 1,060 paired gallery samples, local paths, or uploads |
-| Tiled Sentinel inference | Writes a georeferenced 13-band reconstruction GeoTIFF |
-| PyTorch training workflow | Trains on paired SEN12MS-CR records when the source dataset is available |
-| Evaluation gallery | Browses cloudy input, estimate, clear reference, and per-patch metrics |
-| LISS-IV research track | Separate [three-band interface, source, scripts, and guide](liss4/README.md) |
+## Outputs
 
+- 13-band reconstructed Sentinel-2 GeoTIFF
+- Source raster georeferencing
+- Preview images and per-sample paired-reference metrics
 
-## LISS-IV research track
+## Experimental LISS-IV app
 
-The LISS-IV app and experiments are a separate, optical-only track under
-`liss4/src/` and `liss4/scripts/`. They use `[Green, Red, NIR]` bands
-(typically `BAND2`, `BAND3`, `BAND4`) and do not use
-Sentinel-1 SAR. The bundled LISS-IV checkpoint was trained with synthetic cloud
-corruption; its real-scene comparison uses a temporal reference and is not
-same-time ground truth.
+A separate optical-only LISS-IV interface is available:
 
-Paired LISS-IV fine-tuning code is available, including an optional DiffCR
-initialization. It needs co-registered cloudy/clear LISS-IV pairs. The current
-[`data/liss4_pairs/manifest.csv`](data/liss4_pairs/manifest.csv) is an empty
-template because this checkout has no verified native cloudy/clear pair set.
-AllClear pretraining is not currently part of the workflow. A future
-cross-sensor pretraining stage should use AllClear's training split, then be
-fine-tuned and evaluated separately on LISS-IV data.
+```bash
+streamlit run app_liss4.py
+```
 
-See the [LISS-IV experiment history](PROJECT_GUIDE.md#historical-liss-iv-model-and-evidence),
-[paired training setup](PROJECT_GUIDE.md#train-on-paired-cloudyclear-liss-iv-imagery),
-and [DiffCR fine-tuning notes](PROJECT_GUIDE.md#fine-tune-the-linked-repos-pretrained-diffcr-model).
-
-## Roadmap
-
-- Evaluate on more geographically independent scenes with reliable cloud masks
-  and carefully aligned clear references.
-- Explore AllClear training-split pretraining followed by sensor-specific
-  fine-tuning when the dataset and compute are available.
-- Expand LISS-IV training with verified native pairs; additional compute would
-  support larger scenes, more experiments, and broader validation.
+It uses different inputs and checkpoints and is not part of the Sentinel-2
+held-out benchmark.
 
 ## Limitations
 
-- Cloud-obscured surface detail is not directly observed; the model may invent
-  or miss features, especially under thick cloud or outside its training domain.
-- The gallery comes from one dataset. Held-out patches within it do not prove
-  performance on other sensors, regions, or seasons.
-- Reference images may be from different acquisition dates, so metric scores
-  include temporal and registration differences.
-- LISS-IV results are experimental, and the current paired-training manifest
-  has no verified pairs.
-
-## Research and license
-
-- [SEN12MS-CR dataset record](https://mediatum.ub.tum.de/1554803)
-- [AllClear dataset and benchmark](https://github.com/Zhou-Hangyu/allclear)
-- [DiffCR source repository](https://github.com/Zhou-Hangyu/DiffCR)
----
+- Cloud-obscured surface detail is estimated and may be inaccurate.
+- Results may differ outside the training and prepared demo domains.
+- Reference images may have temporal differences.
+- The held-out benchmark does not represent independent external validation.

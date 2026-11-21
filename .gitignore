@@ -20,7 +20,6 @@ weights/*.pth
 weights/*.hdf5
 !weights/clearskkyai.pth
 !weights/liss4_clearsky_v3r.pth
-!weights/README.md
 
 # Temporary preview embeds
 previews/*_embed.svg
