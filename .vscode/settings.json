@@ -1,0 +1,16 @@
+{
+  "files.watcherExclude": {
+    "**/.git/**": true,
+    "**/__pycache__/**": true,
+    "**/data/**": true,
+    "**/previews/**": true,
+    "**/weights/**": true,
+    "**/liss4/data/**": true
+  },
+  "search.exclude": {
+    "**/.git/**": true,
+    "**/data/**": true,
+    "**/previews/**": true,
+    "**/weights/**": true
+  }
+}

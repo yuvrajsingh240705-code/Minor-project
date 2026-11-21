@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import csv
+import json
 from pathlib import Path
 import subprocess
 import sys
@@ -17,6 +18,7 @@ from rasterio.enums import Resampling
 PROJECT_ROOT = Path(__file__).resolve().parent
 INFERENCE_SCRIPT = PROJECT_ROOT / "scripts" / "infer_clearsky_sentinel.py"
 GALLERY_MANIFEST = PROJECT_ROOT / "data" / "sentinel_demo" / "manifest.csv"
+EVAL_SUMMARY = PROJECT_ROOT / "data" / "eval" / "sentinel_demo" / "summary.json"
 MAX_PREVIEW_EDGE = 900
 REFLECTANCE_MAX = 10000.0
 ERROR_PREVIEW_SCALE = 48.0
@@ -35,19 +37,6 @@ def is_lfs_pointer(path: Path) -> bool:
 
 def checkpoint_ready(path: Path) -> bool:
     return path.is_file() and not is_lfs_pointer(path)
-
-
-def available_checkpoints() -> dict[str, Path]:
-    """List every usable .pth checkpoint in the weights directory."""
-    options: dict[str, Path] = {}
-    weights_dir = PROJECT_ROOT / "weights"
-    if weights_dir.is_dir():
-        for path in sorted(weights_dir.glob("*.pth"), key=lambda item: item.name.lower()):
-            if path.name.startswith("liss4_"):
-                continue
-            if checkpoint_ready(path):
-                options[f"{path.stem} ({path.name})"] = path
-    return options
 
 
 def read_gallery() -> list[dict]:
@@ -81,6 +70,16 @@ def read_gallery() -> list[dict]:
         )
     )
     return rows
+
+
+def read_evaluation_summary() -> dict | None:
+    if not EVAL_SUMMARY.is_file():
+        return None
+    try:
+        with EVAL_SUMMARY.open("r", encoding="utf-8") as stream:
+            return json.load(stream)
+    except (OSError, json.JSONDecodeError):
+        return None
 
 
 def stage_upload(uploaded_file, destination: Path) -> Path:
@@ -223,7 +222,7 @@ def readable_case(row: dict) -> str:
 
 
 def render_sidebar(cases: list[dict]):
-    st.sidebar.title("🕹️ Control Panel")
+    st.sidebar.title("Reconstruction")
     gallery_mode = "Prepared paired sample gallery"
     mode = st.sidebar.radio(
         "Input mode",
@@ -231,16 +230,10 @@ def render_sidebar(cases: list[dict]):
         index=0 if cases else 1,
         key="input_mode",
     )
-    checkpoint_options = available_checkpoints()
-    if checkpoint_options:
-        model_label = st.sidebar.selectbox("Reconstruction checkpoint", tuple(checkpoint_options))
-        checkpoint = checkpoint_options[model_label]
-        st.sidebar.success("Reconstruction checkpoint is ready")
-        st.sidebar.info("Expected input: cloudy S2 + aligned S1 VV/VH → 13-band estimate")
-    else:
-        model_label = ""
-        checkpoint = PROJECT_ROOT / "weights" / "clearskkyai.pth"
-        st.sidebar.error("Model weights are missing or still Git LFS pointers. Run `git lfs pull`.")
+    checkpoint = PROJECT_ROOT / "weights" / "clearskkyai.pth"
+    model_label = "ClearSky-AI Sentinel"
+    if not checkpoint_ready(checkpoint):
+        st.sidebar.error("Checkpoint is not available. Run `git lfs pull`.")
     if GALLERY_LFS_PENDING:
         st.sidebar.warning("Sample imagery is still stored as Git LFS pointers. Run `git lfs pull`.")
 
@@ -252,22 +245,8 @@ def render_sidebar(cases: list[dict]):
 
     if mode == gallery_mode:
         if cases:
-            train_count = sum(row["split"].lower() == "train" for row in cases)
-            test_count = len(cases) - train_count
-            st.sidebar.success(
-                f"Loaded {len(cases)} paired patches · {test_count} held-out · {train_count} train-split demo"
-            )
-            split_filter = st.sidebar.selectbox(
-                "Sample split",
-                ("Held-out test scenes", "Training-split illustration", "All samples"),
-                index=0,
-            )
-            if split_filter == "Held-out test scenes":
-                filtered_cases = [row for row in cases if row["split"].lower() != "train"]
-            elif split_filter == "Training-split illustration":
-                filtered_cases = [row for row in cases if row["split"].lower() == "train"]
-            else:
-                filtered_cases = cases
+            filtered_cases = [row for row in cases if row["split"].lower() != "train"]
+            st.sidebar.success(f"{len(filtered_cases)} held-out paired samples")
             seasons = sorted({row["season"].title() for row in filtered_cases})
             season_filter = st.sidebar.selectbox("Season", ("All seasons", *seasons))
             if season_filter != "All seasons":
@@ -289,20 +268,8 @@ def render_sidebar(cases: list[dict]):
             target_path = selected["clear_target"]
             sample_note = selected["note"]
             input_name = selected_id
-            if selected["split"].lower() == "train":
-                st.sidebar.warning("Train-split example: do not present its score as held-out performance.")
-            if selected.get("cloud_coverage_pct"):
-                coverage = float(selected["cloud_coverage_pct"])
-                st.sidebar.info(f"Published cloud-coverage annotation: {coverage:.2f}%")
-            if selected.get("land_cover"):
-                st.sidebar.info(
-                    "Urban/built-up class label; this mirror does not identify a named city or preserve georeferencing."
-                )
         else:
-            if GALLERY_LFS_PENDING:
-                st.sidebar.warning("Sample imagery needs Git LFS. Run `git lfs pull` from the repository root.")
-            else:
-                st.sidebar.warning("No local gallery yet. Run `python scripts/prepare_sen12mscr_demo.py`.")
+            st.sidebar.warning("No paired gallery samples are available.")
     elif mode == "Upload raster pair":
         s2_upload = st.sidebar.file_uploader(
             "Cloudy Sentinel-2 · 13 bands", type=("tif", "tiff"), key="s2_upload"
@@ -324,27 +291,6 @@ def render_sidebar(cases: list[dict]):
             sar_path = Path(sar_text.strip()).expanduser().resolve()
             input_name = f"{cloudy_path.name}, {sar_path.name}"
 
-    with st.sidebar.expander("Model input contract", expanded=False):
-        st.markdown(
-            "**Sentinel-2:** 13 bands in B01, B02, B03, B04, B05, B06, B07, "
-            "B08, B8A, B09, B10, B11, B12 order; reflectance DN.\n\n"
-            "**Sentinel-1:** two bands in VV, VH order; dB. Both GeoTIFFs must already "
-            "share dimensions, CRS, and affine transform. Arbitrary RGB/JPEG images or "
-            "unaligned inputs are not compatible."
-        )
-        st.caption(
-            "Meeting the input contract is necessary, not a quality guarantee: the model can "
-            "leave cloud artifacts or alter surface detail on unfamiliar scenes."
-        )
-    with st.sidebar.expander("Model and data attribution", expanded=False):
-        st.markdown(
-            "The bundled `weights/clearskkyai.pth` checkpoint is the ClearSky-AI trained "
-            "SAR-guided Sentinel-2 reconstruction model. The sample gallery "
-            "is derived from the [SEN12MS-CR dataset](https://mediatum.ub.tum.de/1554803), "
-            "licensed CC BY 4.0. This software is "
-            "distributed under GNU GPL-3.0, without warranty; see the repository `LICENSE` "
-            "and `THIRD_PARTY_NOTICES.md` for terms and attribution."
-        )
     with st.sidebar.expander("Inference settings"):
         tile = st.select_slider("Tile size", options=(128, 256, 384, 512), value=256)
         overlap = st.slider("Tile overlap (pixels)", 0, tile - 1, min(32, tile - 1))
@@ -476,8 +422,7 @@ def display_results(result: dict | None, current_input: str) -> None:
     )
     st.title("🛰️ ClearSky-AI: SAR–Optical Cloud Reconstruction")
     st.caption(
-        "Sentinel-1-guided Sentinel-2 reconstruction · Paired reference evaluation · "
-        "ClearSky-AI demo gallery"
+        "Sentinel-1-guided Sentinel-2 reconstruction"
     )
 
     if result is None or result["input_name"] != current_input:
@@ -487,7 +432,6 @@ def display_results(result: dict | None, current_input: str) -> None:
     st.caption(
         f"Scene: {result['width']:,} × {result['height']:,} px · {result['crs']}"
     )
-    st.caption(f"Checkpoint: {result['model_label']}")
     columns = st.columns(4, gap="small")
     headings = ("1. SAR (Radar)", "2. Cloudy Sentinel-2", "3. ClearSky-AI Estimate", "4. Clear Reference")
     images = (result["sar"], result["cloudy"], result["estimate"], result["target"])
@@ -555,14 +499,7 @@ def display_results(result: dict | None, current_input: str) -> None:
         mime="image/tiff",
         type="primary",
     )
-    with st.expander("Run details"):
-        st.write(f"Input: {result['input_name']}")
-        st.write(f"Output pixel type: {result['dtype']}")
-        st.code(result["stdout"].strip())
-
-
-def main() -> None:
-    st.set_page_config(page_title="ClearSky-AI · Sentinel Reconstruction", page_icon="🛰️", layout="wide")
+def reconstruction_page() -> None:
     cases = read_gallery()
     selection = render_sidebar(cases)
     if selection["run_clicked"]:
@@ -571,10 +508,140 @@ def main() -> None:
     current_input = selection["input_name"]
     result = st.session_state.get("last_result")
     display_results(result, current_input)
-    st.caption(
-        "Cloud removal is reconstruction, not recovery of guaranteed ground truth. "
-        "For the preserved LISS-IV prototype, run `streamlit run app_liss4.py`."
+    st.caption("Cloud removal is reconstruction, not recovery of guaranteed ground truth.")
+
+
+def benchmark_page() -> None:
+    st.title("📊 ClearSky-AI Benchmark")
+    st.caption("Full held-out Sentinel-2 reconstruction evaluation")
+
+    evaluation = read_evaluation_summary()
+    if evaluation is None:
+        st.error("Benchmark results are not available.")
+        return
+
+    test_summary = evaluation["splits"].get("test")
+    if test_summary is None:
+        st.error("No held-out test summary was found in summary.json.")
+        return
+
+    cloudy = test_summary["cloudy"]
+    output = test_summary["output"]
+    gain = test_summary["mean_PSNR_gain_dB"]
+
+    columns = st.columns(5)
+    columns[0].metric("Held-out patches", f"{test_summary['patches']:,}")
+    columns[1].metric("Cloudy PSNR", f"{cloudy['PSNR_dB']:.2f} dB")
+    columns[2].metric("Reconstruction PSNR", f"{output['PSNR_dB']:.2f} dB")
+    columns[3].metric("PSNR gain", f"{gain:+.2f} dB")
+    columns[4].metric(
+        "Improved patches",
+        f"{test_summary['patches_with_positive_PSNR_gain']}/{test_summary['patches']}",
     )
+
+    quality = st.columns(5)
+    quality[0].metric("Cloudy MAE", f"{cloudy['MAE_0_1']:.5f}")
+    quality[1].metric("Reconstruction MAE", f"{output['MAE_0_1']:.5f}")
+    quality[2].metric("Cloudy SSIM", f"{cloudy['SSIM']:.5f}")
+    quality[3].metric("Reconstruction SSIM", f"{output['SSIM']:.5f}")
+    quality[4].metric("Reconstruction SAM", f"{output['SAM_degrees']:.3f}°")
+
+    st.caption(
+        "Paired-reference benchmark on 964 SEN12MS-CR held-out patches. "
+        "Clear references may come from a different acquisition date."
+    )
+    with st.expander("How to read these metrics"):
+        st.markdown(
+            "**PSNR** measures how closely the image matches the clear reference. "
+            "Higher is better; each patch gain is reconstruction PSNR minus cloudy PSNR.\n\n"
+            "**MAE** is the average absolute difference across all 13 bands. "
+            "Lower is better.\n\n"
+            "**RMSE** emphasizes larger pixel errors more strongly than MAE. "
+            "Lower is better.\n\n"
+            "**SSIM** measures structure, brightness, and contrast similarity. "
+            "It ranges from 0 to 1; higher is better.\n\n"
+            "**SAM** compares spectral direction in degrees across the 13 bands. "
+            "Lower is better because it means the reconstructed spectrum is closer "
+            "to the clear reference."
+        )
+
+    graph_dir = EVAL_SUMMARY.parent
+    psnr_tab, quality_tab, gain_tab = st.tabs(
+        ("PSNR distribution", "MAE & SSIM", "Cumulative gain")
+    )
+    graph_specs = (
+        (
+            psnr_tab,
+            "psnr_benchmark.png",
+            "Cloudy versus reconstructed PSNR",
+            "The left histogram shows how many patches gained each amount of PSNR. "
+            "The right scatter plot compares cloudy and reconstructed PSNR; points above "
+            "the diagonal indicate an improvement.",
+        ),
+        (
+            quality_tab,
+            "quality_benchmark.png",
+            "MAE and SSIM distributions",
+            "The MAE box plot compares average pixel error: lower values are better. "
+            "The SSIM box plot compares structural similarity: higher values are better.",
+        ),
+        (
+            gain_tab,
+            "cumulative_psnr_gain.png",
+            "Cumulative held-out PSNR gain",
+            "This curve shows the percentage of held-out patches at or above each PSNR gain "
+            "value. A point above zero PSNR gain represents an improved patch.",
+        ),
+    )
+    for tab, filename, caption, explanation in graph_specs:
+        graph_path = graph_dir / filename
+        with tab:
+            if graph_path.is_file():
+                st.image(str(graph_path), caption=caption, width="stretch")
+                st.caption(explanation)
+            else:
+                st.warning(f"Graph not found: {filename}")
+
+    st.divider()
+    metrics_path = graph_dir / "metrics.csv"
+    report_path = graph_dir / "benchmark_report.md"
+    download_columns = st.columns(3)
+    if metrics_path.is_file():
+        download_columns[0].download_button(
+            "Download per-patch metrics CSV",
+            metrics_path.read_bytes(),
+            file_name="clearsky_benchmark_metrics.csv",
+            mime="text/csv",
+        )
+    if EVAL_SUMMARY.is_file():
+        download_columns[1].download_button(
+            "Download benchmark summary JSON",
+            EVAL_SUMMARY.read_bytes(),
+            file_name="clearsky_benchmark_summary.json",
+            mime="application/json",
+        )
+    if report_path.is_file():
+        download_columns[2].download_button(
+            "Download benchmark report",
+            report_path.read_bytes(),
+            file_name="clearsky_benchmark_report.md",
+            mime="text/markdown",
+        )
+
+
+
+def main() -> None:
+    st.set_page_config(
+        page_title="ClearSky-AI",
+        page_icon="🛰️",
+        layout="wide",
+    )
+    pages = [
+        st.Page(reconstruction_page, title="Reconstruction", icon="🛰️"),
+        st.Page(benchmark_page, title="Benchmark", icon="📊"),
+    ]
+    navigation = st.navigation(pages, position="sidebar")
+    navigation.run()
 
 
 main()
