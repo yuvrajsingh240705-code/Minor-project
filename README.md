@@ -28,9 +28,19 @@ The reconstruction improved PSNR in **960 of 964 patches**.
 The **Benchmark** page in the Streamlit app contains the charts, metric
 explanations, and downloadable benchmark files.
 
-> These are paired-reference results from one dataset. They demonstrate
-> performance on the prepared held-out subset, not independent real-world
-> validation. Clear references may come from a different acquisition date.
+## Dataset use
+
+- **Training material:** SEN12MS-CR and AllClear, with approximately 90 GB of
+  source data used for the project training work.
+- **Held-out test benchmark:** All 964 official test-split patches are included.
+
+The exact image count, crop count, training epochs, and validation count used
+for the bundled checkpoint are not stored in the checkpoint, so they should not
+be guessed.
+
+These benchmark results demonstrate performance on the prepared held-out
+subset, not independent real-world validation. Clear references may come from
+a different acquisition date.
 
 ## Quick start
 

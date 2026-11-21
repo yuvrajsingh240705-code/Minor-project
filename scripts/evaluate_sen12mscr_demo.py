@@ -330,6 +330,15 @@ def main() -> None:
             checkpoint_sha256(args.checkpoint) if args.checkpoint.is_file() else None
         ),
         "manifest": str(args.manifest.resolve()),
+        "training_sources": [
+            "SEN12MS-CR",
+            "AllClear",
+        ],
+        "training_source_reported_size_gb": 90,
+        "diffcr_role": "Source repository/reference implementation",
+        "prepared_training_examples": 96,
+        "validation_split_recorded": False,
+        "held_out_test_patches": len(test_results),
         "split_filter": args.split,
         "limit": args.limit,
         "ssim_window": args.ssim_window,

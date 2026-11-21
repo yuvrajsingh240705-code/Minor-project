@@ -547,7 +547,7 @@ def benchmark_page() -> None:
     quality[4].metric("Reconstruction SAM", f"{output['SAM_degrees']:.3f}°")
 
     st.caption(
-        "Paired-reference benchmark on 964 SEN12MS-CR held-out patches. "
+        "Paired-reference benchmark on SEN12MS-CR held-out patches. "
         "Clear references may come from a different acquisition date."
     )
     with st.expander("How to read these metrics"):
