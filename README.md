@@ -34,18 +34,10 @@ explanations, and downloadable benchmark files.
   source data used for the project training work.
 - **Held-out test benchmark:** All 964 official test-split patches are included.
 
-The exact image count, crop count, training epochs, and validation count used
-for the bundled checkpoint are not stored in the checkpoint, so they should not
-be guessed.
-
-These benchmark results demonstrate performance on the prepared held-out
-subset, not independent real-world validation. Clear references may come from
-a different acquisition date.
 
 ## Quick start
 
-Install Git LFS before cloning or run it after cloning to retrieve the
-checkpoint and gallery assets.
+Install Git LFS to retrieve the checkpoint and gallery assets.
 
 ```bash
 git lfs install
